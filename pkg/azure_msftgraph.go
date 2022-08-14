@@ -25,15 +25,19 @@ type azuremodel struct {
 	clientSecret  string
 	loginClientID string
 	graphUrl      string
+	tenantID      string
+	authorityUrl  string
 }
 
-func NewAzureModel(host string, clientID string, clientSecret string, loginClientID string, graphUrl string) *azuremodel {
+func NewAzureModel(host string, clientID string, clientSecret string, loginClientID string, graphUrl string, tenantID string, authorityUrl string) *azuremodel {
 	return &azuremodel{
 		host:          host,
 		clientID:      clientID,
 		clientSecret:  clientSecret,
 		loginClientID: loginClientID,
 		graphUrl:      graphUrl,
+		tenantID:      tenantID,
+		authorityUrl:  authorityUrl,
 	}
 }
 
@@ -43,7 +47,7 @@ func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 		fmt.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
-	app, err := confidential.New(model.clientID, creds, confidential.WithAuthority("https://login.microsoftonline.com/smscb2cgp.onmicrosoft.com"))
+	app, err := confidential.New(model.clientID, creds, confidential.WithAuthority(model.authorityUrl))
 	if err != nil {
 		fmt.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
@@ -61,8 +65,8 @@ func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 }
 
 func (model *azuremodel) InitializeClient() (*msgraphsdk.GraphServiceClient, error) {
-	cred, err := azidentity.NewClientSecretCredential(
-		"smscb2cgp.onmicrosoft.com",
+	credential_from_azidentity, err := azidentity.NewClientSecretCredential(
+		model.tenantID,
 		model.clientID,
 		model.clientSecret,
 		nil,
@@ -71,18 +75,18 @@ func (model *azuremodel) InitializeClient() (*msgraphsdk.GraphServiceClient, err
 		log.Print("could not initialize azclient", err)
 		return nil, errors.New(ErrGraphClient)
 	}
-	auth, err := a.NewAzureIdentityAuthenticationProviderWithScopes(cred, []string{"https://graph.microsoft.com/.default"})
+	auth, err := a.NewAzureIdentityAuthenticationProviderWithScopes(credential_from_azidentity, []string{model.graphUrl})
 	if err != nil {
 		log.Print("authentication err", err)
 		return nil, errors.New(ErrGraphClient)
 	}
-	adapter, err := msgraphsdk.NewGraphRequestAdapter(auth)
+	graph_adapter, err := msgraphsdk.NewGraphRequestAdapter(auth)
 	if err != nil {
 		log.Print("adapter error", err)
 		return nil, errors.New(ErrGraphClient)
 	}
-	client := msgraphsdk.NewGraphServiceClient(adapter)
-	return client, nil
+	initialized_client_result := msgraphsdk.NewGraphServiceClient(graph_adapter)
+	return initialized_client_result, nil
 }
 
 func (model *azuremodel) AzureCreateNewUser(ctx context.Context, email, password, firstname, lastname string) {
