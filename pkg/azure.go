@@ -1,9 +1,14 @@
 package azure
 
-import "context"
+import (
+	"context"
+
+	msgraphsdk "github.com/microsoftgraph/msgraph-sdk-go"
+)
 
 type Client interface {
-	GetTokenUsingClientCredentials() string
+	GetTokenUsingClientCredentials() (string, error)
+	InitializeClient() (*msgraphsdk.GraphServiceClient, error)
 	AzureCreateNewUser(ctx context.Context, email, password, firstname, lastname string)
 	AzureAddExtensionToUser(ctx context.Context, sessionkey string)
 }
