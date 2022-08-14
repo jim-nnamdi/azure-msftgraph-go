@@ -3,7 +3,6 @@ package azure
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 
 	azidentity "github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -49,19 +48,19 @@ func NewAzureModel(host string, clientID string, clientSecret string, loginClien
 func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 	credentials_from_secret, err := confidential.NewCredFromSecret(model.clientSecret)
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
 	app, err := confidential.New(model.clientID, credentials_from_secret, confidential.WithAuthority(model.authorityUrl))
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
 	generate_token, err := app.AcquireTokenSilent(context.Background(), []string{model.graphUrl})
 	if err != nil {
 		generate_token, err := app.AcquireTokenByCredential(context.Background(), []string{model.graphUrl})
 		if err != nil {
-			fmt.Print(err.Error())
+			log.Print(err.Error())
 			return "", errors.New(ErrCouldNotGenerateToken)
 		}
 		return generate_token.AccessToken, nil
