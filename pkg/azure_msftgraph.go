@@ -13,6 +13,7 @@ import (
 	"github.com/jim-nnamdi/azure-msftgraph-go/pkg/web"
 	a "github.com/microsoft/kiota-authentication-azure-go"
 	msgraphsdk "github.com/microsoftgraph/msgraph-sdk-go"
+	"go.uber.org/zap"
 )
 
 var _ Client = &azuremodel{}
@@ -26,6 +27,7 @@ var (
 
 type azuremodel struct {
 	host          string
+	logger        *zap.Logger
 	clientID      string
 	clientSecret  string
 	loginClientID string
@@ -36,9 +38,10 @@ type azuremodel struct {
 	webClient     web.WebClient
 }
 
-func NewAzureModel(host string, clientID string, clientSecret string, loginClientID string, graphUrl string, tenantID string, authorityUrl string, tenantUrl string) *azuremodel {
+func NewAzureModel(host string, clientID string, clientSecret string, loginClientID string, graphUrl string, tenantID string, authorityUrl string, tenantUrl string, logger *zap.Logger) *azuremodel {
 	return &azuremodel{
 		host:          host,
+		logger:        logger,
 		clientID:      clientID,
 		clientSecret:  clientSecret,
 		loginClientID: loginClientID,
@@ -58,11 +61,13 @@ func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 	credentials_from_secret, err := confidential.NewCredFromSecret(model.clientSecret)
 	if err != nil {
 		log.Print(err.Error())
+		model.logger.Debug(ErrCouldNotGenerateToken, zap.Any("credentials_secret", credentials_from_secret))
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
 	app, err := confidential.New(model.clientID, credentials_from_secret, confidential.WithAuthority(model.authorityUrl))
 	if err != nil {
 		log.Print(err.Error())
+		model.logger.Debug(ErrCouldNotGenerateToken, zap.Any("credentials_secret", credentials_from_secret))
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
 	generate_token, err := app.AcquireTokenSilent(context.Background(), []string{model.graphUrl})
@@ -70,6 +75,7 @@ func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 		generate_token, err := app.AcquireTokenByCredential(context.Background(), []string{model.graphUrl})
 		if err != nil {
 			log.Print(err.Error())
+			model.logger.Debug(ErrCouldNotGenerateToken, zap.Any("acquire_token", credentials_from_secret))
 			return "", errors.New(ErrCouldNotGenerateToken)
 		}
 		return generate_token.AccessToken, nil
