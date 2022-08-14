@@ -41,13 +41,18 @@ func NewAzureModel(host string, clientID string, clientSecret string, loginClien
 	}
 }
 
+// this token is generated using the credentials given to the client
+// which includes the client secret, client id and authority url
+// the authority url includes the tenant id. this token would be used as
+// authorization bearer for querying the microsoft graph.
+
 func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
-	creds, err := confidential.NewCredFromSecret(model.clientSecret)
+	credentials_from_secret, err := confidential.NewCredFromSecret(model.clientSecret)
 	if err != nil {
 		fmt.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
 	}
-	app, err := confidential.New(model.clientID, creds, confidential.WithAuthority(model.authorityUrl))
+	app, err := confidential.New(model.clientID, credentials_from_secret, confidential.WithAuthority(model.authorityUrl))
 	if err != nil {
 		fmt.Print(err.Error())
 		return "", errors.New(ErrCouldNotGenerateToken)
@@ -63,6 +68,10 @@ func (model *azuremodel) GetTokenUsingClientCredentials() (string, error) {
 	}
 	return generate_token.AccessToken, nil
 }
+
+// when the client is initialized, it can be used as a base
+// which contains different objects and functions to actually
+// make direct calls to the microsoft SDK.
 
 func (model *azuremodel) InitializeClient() (*msgraphsdk.GraphServiceClient, error) {
 	credential_from_azidentity, err := azidentity.NewClientSecretCredential(
