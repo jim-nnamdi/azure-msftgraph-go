@@ -9,6 +9,6 @@ import (
 type Client interface {
 	GetTokenUsingClientCredentials() (string, error)
 	InitializeClient() (*msgraphsdk.GraphServiceClient, error)
-	AzureCreateNewUser(ctx context.Context, email, password, firstname, lastname string)
+	AzureCreateNewUser(ctx context.Context, email, password, firstname, lastname string) (*AzUser, error)
 	AzureAddExtensionToUser(ctx context.Context, sessionkey string)
 }
