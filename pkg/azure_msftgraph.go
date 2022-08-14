@@ -19,6 +19,7 @@ import (
 var _ Client = &azuremodel{}
 
 var (
+	ErrNewUser               = "error creating new azure user"
 	ErrCouldNotGenerateToken = "could not generate token successfully"
 	ErrGraphClient           = "could not initialize microsoft graph client successfully"
 	ErrParsingJson           = "could not parse json successfully"
@@ -141,15 +142,21 @@ func (model *azuremodel) AzureCreateNewUser(ctx context.Context, email, password
 	log.Print(convert_byte_data_to_string)
 
 	access_token, err := model.GetTokenUsingClientCredentials()
+	if err != nil {
+		model.logger.Debug(ErrNewUser, zap.Any("access_token_generated", access_token))
+		return nil, errors.New(err.Error())
+	}
 	res, err := model.webClient.ResponseUrlWithData(ctx, model.tenantUrl, convert_byte_data_to_string, access_token, http.MethodPost)
 	if err != nil {
 		log.Print(err.Error())
+		model.logger.Debug(ErrNewUser, zap.Any("error_parsing_json", convert_byte_data_to_string))
 		return nil, errors.New(ErrParsingJson)
 	}
 	defer res.Body.Close()
 	generate_data, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Print(err.Error())
+		model.logger.Debug(ErrNewUser, zap.Any("error_generating_data", generate_data))
 	}
 	var user_data AzUser
 	error := json.Unmarshal(generate_data, &user_data)
