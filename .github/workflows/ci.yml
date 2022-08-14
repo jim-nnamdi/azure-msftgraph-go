@@ -16,5 +16,5 @@ jobs:
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - uses: actions/checkout@v3
 
-      - name: Run tests
-        run: go test ./... -v
+      # - name: Run tests
+      #   run: go test ./... -v
